@@ -16,9 +16,12 @@ def main():
 
     parser = argparse.ArgumentParser(description="Chatbot")
     parser.add_argument("user_prompt", type=str, help="User prompt")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
 
-    print(f"User prompt: {args.user_prompt}")
+    if args.verbose:
+        print(f"User prompt: {args.user_prompt}")
+
     messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
     response = client.models.generate_content(
         model="gemini-2.5-flash", contents=messages
@@ -27,9 +30,11 @@ def main():
     if not response.usage_metadata:
         raise RuntimeError("request has failed")
 
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-    print("Response:")
+    if args.verbose:
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+        print("Response:")
+
     print(response.text)
 
 
