@@ -2,6 +2,27 @@ import os
 import subprocess
 from typing import Any
 
+from google.genai import types
+
+schema_run_python_file = types.FunctionDeclaration(
+    name="run_python_file",
+    description="Runs a python file with optional arguments and returns it's exit code, stdout and stderr",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="Path to the python file to run",
+            ),
+            "args": types.Schema(
+                type=types.Type.ARRAY,
+                description="An optional array of arguments to pass to the python file",
+                items=types.Schema(type=types.Type.STRING),
+            ),
+        },
+    ),
+)
+
 
 def run_python_file(
     working_directory: str, file_path: str, args: list[Any] | None = None
