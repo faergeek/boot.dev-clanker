@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from call_function import available_functions
+from call_function import available_functions, call_function
 from prompts import system_prompt
 
 
@@ -44,8 +44,24 @@ def main():
         print("Response:")
 
     if response.function_calls:
+        results: list[types.Part] = []
+
         for function_call in response.function_calls:
-            print(f"Calling function: {function_call.name}({function_call.args})")
+            function_call_result = call_function(function_call, args.verbose)
+
+            if (
+                not function_call_result.parts
+                or not function_call_result.parts[0].function_response
+                or not function_call_result.parts[0].function_response.response
+            ):
+                raise Exception(
+                    "Expected .parts[0].function_response.response to be present"
+                )
+
+            if args.verbose:
+                print(f"-> {function_call_result.parts[0].function_response.response}")
+
+            results.append(function_call_result.parts[0])
     else:
         print(response.text)
 
