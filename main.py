@@ -26,25 +26,35 @@ def main():
         print(f"User prompt: {args.user_prompt}")
 
     messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=messages,
-        config=types.GenerateContentConfig(
-            tools=[available_functions],
-            system_instruction=system_prompt,
-        ),
-    )
+    response: types.GenerateContentResponse | None = None
+    for _ in range(20):
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=messages,
+            config=types.GenerateContentConfig(
+                tools=[available_functions],
+                system_instruction=system_prompt,
+            ),
+        )
 
-    if not response.usage_metadata:
-        raise RuntimeError("request has failed")
+        if not response.usage_metadata:
+            raise RuntimeError("request has failed")
 
-    if args.verbose:
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-        print("Response:")
+        if response.candidates:
+            for candidate in response.candidates:
+                if candidate.content:
+                    messages.append(candidate.content)
 
-    if response.function_calls:
-        results: list[types.Part] = []
+        if args.verbose:
+            print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+            print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+            print("Response:")
+
+        if not response.function_calls:
+            print(response.text)
+            return
+
+        function_responses: list[types.Part] = []
 
         for function_call in response.function_calls:
             function_call_result = call_function(function_call, args.verbose)
@@ -61,9 +71,13 @@ def main():
             if args.verbose:
                 print(f"-> {function_call_result.parts[0].function_response.response}")
 
-            results.append(function_call_result.parts[0])
-    else:
-        print(response.text)
+            function_responses.append(function_call_result.parts[0])
+
+        messages.append(types.Content(role="user", parts=function_responses))
+
+    if not response or response.function_calls:
+        print("Erro: no final response after the maximum number of iterations")
+        exit(1)
 
 
 if __name__ == "__main__":
